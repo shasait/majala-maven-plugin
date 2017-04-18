@@ -19,7 +19,7 @@
 
 	<groupId>de.hasait.majala</groupId>
 	<artifactId>majala-maven-plugin</artifactId>
-	<version>1.0.0.RC3-SNAPSHOT</version>
+	<version>1.0.0.RELEASE</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Maven Java Launcher Plugin</name>
