@@ -22,7 +22,9 @@
 	<version>1.0.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
-	<name>Maven Java Launcher Plugin</name>
+	<name>majala-maven-plugin</name>
+	<description>Maven Java Launcher Plugin</description>
+	<url>https://github.com/shasait/majala-maven-plugin</url>
 
 	<licenses>
 		<license>
