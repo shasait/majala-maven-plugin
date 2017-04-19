@@ -1,5 +1,7 @@
 # Maven Plugin - MaJaLa (Maven Java Launcher)
 
+[![Maven Central](https://img.shields.io/maven-central/v/de.hasait.majala/majala-maven-plugin.svg?label=Maven%20Central)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.hasait.majala%22%20AND%20a%3A%22majala-maven-plugin%22)
+
 ## Purpose
 
 Launch an java application by only specifying GAV and MainClass.
