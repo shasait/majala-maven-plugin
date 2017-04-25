@@ -38,6 +38,7 @@ import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.graph.DependencyVisitor;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResult;
@@ -82,8 +83,10 @@ public class MajalaMojo extends AbstractMojo {
 	private String args;
 	@Component
 	private RepositorySystem repoSystem;
-	@Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
+	@Parameter(defaultValue = "${repositorySystemSession}", readonly = true, required = true)
 	private RepositorySystemSession repoSession;
+	@Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true, required = true)
+	private List<RemoteRepository> repositories;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		final Artifact artifact;
@@ -99,58 +102,25 @@ public class MajalaMojo extends AbstractMojo {
 		}
 		assertNonNull(mainClass, "mainClass");
 
-		final CollectRequest collectRequest = new CollectRequest();
-		Dependency rootNode = new Dependency(artifact, "runtime");
-		collectRequest.setRoot(rootNode);
-
-		final CollectResult collectResult;
+		final CollectResult collectResult = collectArtifact(artifact);
+		final Set<File> dependencyFiles = resolveDependencies(collectResult);
+		final List<String> commandParts = buildCommand(dependencyFiles);
+		final Process process = startProcess(commandParts);
 		try {
-			collectResult = repoSystem.collectDependencies(repoSession, collectRequest);
-		} catch (final Exception e) {
-			throw new MojoExecutionException("Collecting dependencies failed", e);
+			process.waitFor();
+		} catch (InterruptedException e) {
+			// ignore
+			getLog().warn("Interrupted while waiting for java");
 		}
+	}
 
-		getLog().info("CollectResult...");
-		collectResult.getRoot().accept(new DependencyVisitor() {
-			private int depth = 0;
-
-			public boolean visitEnter(final DependencyNode node) {
-				depth++;
-				getLog().info(Strings.repeat("-", depth) + " " + node.getArtifact() + " ");
-				return true;
-			}
-
-			public boolean visitLeave(final DependencyNode node) {
-				depth--;
-				return true;
-			}
-		});
-
-		final DependencyRequest dependencyRequest = new DependencyRequest();
-		dependencyRequest.setRoot(collectResult.getRoot());
-
-		final DependencyResult dependencyResult;
-		try {
-			dependencyResult = repoSystem.resolveDependencies(repoSession, dependencyRequest);
-		} catch (final Exception pE) {
-			throw new MojoExecutionException("Resolving dependencies failed", pE);
-		}
-
-		getLog().info("DependencyResult...");
-		final Set<File> dependencyFiles = new HashSet<File>();
-		for (final ArtifactResult artifactResult : dependencyResult.getArtifactResults()) {
-			final File file = artifactResult.getArtifact().getFile();
-			dependencyFiles.add(file);
-			getLog().info("- " + file);
-		}
-
+	private List<String> buildCommand(final Set<File> pDependencyFiles) {
 		final List<String> commandParts = new ArrayList<String>();
 		commandParts.add(java);
 		commandParts.add("-cp");
-
 		final StringBuilder classPathBuilder = new StringBuilder();
 		boolean firstClassPathEntry = true;
-		for (final File file : dependencyFiles) {
+		for (final File file : pDependencyFiles) {
 			if (firstClassPathEntry) {
 				firstClassPathEntry = false;
 			} else {
@@ -183,8 +153,66 @@ public class MajalaMojo extends AbstractMojo {
 				commandParts.add(arg);
 			}
 		}
+		return commandParts;
+	}
 
-		final ProcessBuilder pb = new ProcessBuilder(commandParts);
+	private CollectResult collectArtifact(final Artifact pArtifact) throws MojoExecutionException {
+		getLog().debug("Artifact: " + pArtifact.toString());
+
+		final CollectRequest collectRequest = new CollectRequest();
+		Dependency rootNode = new Dependency(pArtifact, "runtime");
+		collectRequest.setRoot(rootNode);
+		collectRequest.setRepositories(repositories);
+		getLog().debug("Repositories: " + repositories);
+
+		final CollectResult collectResult;
+		try {
+			collectResult = repoSystem.collectDependencies(repoSession, collectRequest);
+		} catch (final Exception e) {
+			throw new MojoExecutionException("Collecting dependencies failed", e);
+		}
+
+		getLog().info("CollectResult...");
+		collectResult.getRoot().accept(new DependencyVisitor() {
+			private int depth = 0;
+
+			public boolean visitEnter(final DependencyNode node) {
+				depth++;
+				getLog().info(Strings.repeat("-", depth) + " " + node.getArtifact() + " ");
+				return true;
+			}
+
+			public boolean visitLeave(final DependencyNode node) {
+				depth--;
+				return true;
+			}
+		});
+		return collectResult;
+	}
+
+	private Set<File> resolveDependencies(final CollectResult pCollectResult) throws MojoExecutionException {
+		final DependencyRequest dependencyRequest = new DependencyRequest();
+		dependencyRequest.setRoot(pCollectResult.getRoot());
+
+		final DependencyResult dependencyResult;
+		try {
+			dependencyResult = repoSystem.resolveDependencies(repoSession, dependencyRequest);
+		} catch (final Exception pE) {
+			throw new MojoExecutionException("Resolving dependencies failed", pE);
+		}
+
+		getLog().info("DependencyResult...");
+		final Set<File> dependencyFiles = new HashSet<File>();
+		for (final ArtifactResult artifactResult : dependencyResult.getArtifactResults()) {
+			final File file = artifactResult.getArtifact().getFile();
+			dependencyFiles.add(file);
+			getLog().info("- " + file);
+		}
+		return dependencyFiles;
+	}
+
+	private Process startProcess(final List<String> pCommandParts) throws MojoExecutionException {
+		final ProcessBuilder pb = new ProcessBuilder(pCommandParts);
 		pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
 		pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -197,13 +225,7 @@ public class MajalaMojo extends AbstractMojo {
 		}
 
 		getLog().info("Java launched");
-
-		try {
-			process.waitFor();
-		} catch (InterruptedException e) {
-			// ignore
-			getLog().warn("Interrupted while waiting for java");
-		}
+		return process;
 	}
 
 }
