@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Launch an java application by only specifying GAV and MainClass.
+Launch any java application by only specifying Group, Artifact, Version (GAV) and MainClass.
 In contrast to Maven Exec Plugin it does not need a Maven Project in the current working directory.
 
 ## Example
