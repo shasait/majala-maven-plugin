@@ -19,7 +19,7 @@
 
 	<groupId>de.hasait.majala</groupId>
 	<artifactId>majala-maven-plugin</artifactId>
-	<version>1.1.0</version>
+	<version>1.1.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>majala-maven-plugin</name>
