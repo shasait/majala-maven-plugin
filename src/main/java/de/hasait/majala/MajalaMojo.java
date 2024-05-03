@@ -81,6 +81,8 @@ public class MajalaMojo extends AbstractMojo {
 	private String arg5;
 	@Parameter(property = "majala.args")
 	private String args;
+	@Parameter(property = "majala.javaArgs")
+	private String javaArgs;
 	@Component
 	private RepositorySystem repoSystem;
 	@Parameter(defaultValue = "${repositorySystemSession}", readonly = true, required = true)
@@ -117,6 +119,12 @@ public class MajalaMojo extends AbstractMojo {
 	private List<String> buildCommand(final Set<File> pDependencyFiles) {
 		final List<String> commandParts = new ArrayList<String>();
 		commandParts.add(java);
+		if (javaArgs != null) {
+			final String[] argsArray = javaArgs.split(" ");
+			for (final String arg : argsArray) {
+				commandParts.add(arg);
+			}
+		}
 		commandParts.add("-cp");
 		final StringBuilder classPathBuilder = new StringBuilder();
 		boolean firstClassPathEntry = true;
