@@ -36,7 +36,6 @@ node('linux') {
 
 	def wsHome
 	def jdkHome
-	def jdk6Home
 	def mvnHome
 	def mvnRepo
 
@@ -46,9 +45,6 @@ node('linux') {
 
 		jdkHome = tool 'JDK8'
 		echo "jdkHome = ${jdkHome}"
-
-		jdk6Home = tool 'JDK6'
-		echo "jdk6Home = ${jdk6Home}"
 
 		mvnHome = tool 'M3'
 		echo "mvnHome = ${mvnHome}"
